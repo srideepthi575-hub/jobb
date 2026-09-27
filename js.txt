@@ -1,0 +1,108 @@
+const CACHE_KEY = "JOB_RADAR_CACHE_DATA";
+const TIMESTAMP_KEY = "JOB_RADAR_CACHE_TIME";
+const TWENTY_FOUR_HOURS = 24 * 60 * 60 * 1000;
+
+document.addEventListener("DOMContentLoaded", () => {
+  loadJobsWith24HourLogic();
+
+  document.getElementById("searchBtn").addEventListener("click", () => {
+    const query = document.getElementById("searchInput").value.trim();
+    fetchRealJobsFromAPI(query);
+  });
+
+  document.getElementById("forceRefreshBtn").addEventListener("click", () => {
+    const query = document.getElementById("searchInput").value.trim();
+    fetchRealJobsFromAPI(query, true);
+  });
+});
+
+async function loadJobsWith24HourLogic() {
+  const cachedData = localStorage.getItem(CACHE_KEY);
+  const cachedTime = localStorage.getItem(TIMESTAMP_KEY);
+  const now = new Date().getTime();
+
+  if (cachedData && cachedTime && (now - Number(cachedTime) < TWENTY_FOUR_HOURS)) {
+    const parsedData = JSON.parse(cachedData);
+    const nextUpdateInHours = Math.round((TWENTY_FOUR_HOURS - (now - Number(cachedTime))) / (1000 * 60 * 60));
+    
+    renderJobsUI(parsedData.jobs);
+    document.getElementById("jobCountText").textContent = `Showing ${parsedData.jobs.length} cached active jobs.`;
+    document.getElementById("lastUpdatedText").textContent = `Last auto-updated: ${new Date(Number(cachedTime)).toLocaleTimeString()} (Next refresh in ~${nextUpdateInHours} hrs)`;
+  } else {
+    await fetchRealJobsFromAPI();
+  }
+}
+
+async function fetchRealJobsFromAPI(query = "", force = false) {
+  const countText = document.getElementById("jobCountText");
+  const grid = document.getElementById("jobGrid");
+
+  countText.textContent = "Connecting to real active source pipeline...";
+  grid.innerHTML = `<div class="empty-state"><p>Scanning live job endpoints...</p></div>`;
+
+  try {
+    const response = await fetch(`/api/real-jobs?q=${encodeURIComponent(query)}`);
+    const data = await response.json();
+
+    if (!data.jobs || data.jobs.length === 0) {
+      countText.textContent = "0 Verified Active Jobs Found";
+      grid.innerHTML = `
+        <div class="empty-state">
+          <h3>No Active Jobs Found</h3>
+          <p>No verified live openings currently match "${query}". Try another role or keyword.</p>
+        </div>
+      `;
+      return;
+    }
+
+    if (!query || force) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      localStorage.setItem(TIMESTAMP_KEY, new Date().getTime().toString());
+    }
+
+    renderJobsUI(data.jobs);
+
+    countText.textContent = `Displaying ${data.count} Verified Active Openings`;
+    document.getElementById("lastUpdatedText").textContent = `Fetched Live: ${new Date(data.lastFetchedTimestamp).toLocaleTimeString()}`;
+
+  } catch (error) {
+    countText.textContent = "Failed to load live feed.";
+    grid.innerHTML = `
+      <div class="empty-state">
+        <p>Error connecting to backend server. Make sure server API is running.</p>
+      </div>
+    `;
+  }
+}
+
+function renderJobsUI(jobs) {
+  const grid = document.getElementById("jobGrid");
+  
+  grid.innerHTML = jobs.map(job => `
+    <div class="job-card">
+      <div class="job-info">
+        <h2 class="job-title">${escapeHTML(job.title)}</h2>
+        <p class="job-company">${escapeHTML(job.company)} · ${escapeHTML(job.location)}</p>
+        <div class="tag-list">
+          <span class="tag">${escapeHTML(job.workMode)}</span>
+          <span class="tag">${escapeHTML(job.jobType)}</span>
+          ${job.skills.slice(0, 3).map(skill => `<span class="tag" style="color: #94a3b8;">${escapeHTML(skill)}</span>`).join('')}
+        </div>
+      </div>
+      <div class="job-action">
+        <div class="salary-text">${escapeHTML(job.salary)}</div>
+        <a href="${job.sourceUrl}" target="_blank" rel="noopener noreferrer" class="apply-btn">Apply Direct</a>
+      </div>
+    </div>
+  `).join('');
+}
+
+function escapeHTML(str) {
+  return String(str || '').replace(/[&<>"']/g, match => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[match]));
+}
