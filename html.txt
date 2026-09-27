@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Real-Time Job Radar — Active Data Engine</title>
+  <title>Real-Time AI Job Radar</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,26 +11,25 @@
     <header class="header">
       <div class="logo-area">
         <h1>📡 Real-Time Job Radar</h1>
-        <span class="badge live-badge">VERIFIED REAL DATA ONLY</span>
+        <span class="badge live-badge">VERIFIED LIVE DATA ONLY</span>
       </div>
-      <p class="subtitle">Live openings strictly from verified source feeds. Zero mock data.</p>
+      <p class="subtitle">Live active openings from verified public sources. Zero mock data.</p>
     </header>
 
     <div class="search-section">
       <div class="search-bar">
-        <input type="text" id="searchInput" placeholder="Search by job title or skill (e.g. Python, React, Developer)...">
+        <input type="text" id="searchInput" placeholder="Search by role, company or skill (e.g., Python, React, Developer)...">
         <button id="searchBtn">Search Radar</button>
         <button id="forceRefreshBtn" class="secondary-btn">🔄 Force 24h Update</button>
       </div>
       
       <div class="status-bar">
-        <span id="jobCountText">Checking cache status...</span>
+        <span id="jobCountText">Checking status...</span>
         <span id="lastUpdatedText" class="timestamp"></span>
       </div>
     </div>
 
-    <main class="job-grid" id="jobGrid">
-      </main>
+    <main class="job-grid" id="jobGrid"></main>
   </div>
 
   <script src="script.js"></script>
